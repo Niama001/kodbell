@@ -16,6 +16,7 @@ A full-stack mentor/tutoring scheduler. Students search for mentors by name or s
 - **Backend:** Node.js, Express
 - **Database:** PostgreSQL
 - **Auth:** JWT + bcrypt password hashing
+- **Testing:** Node.js built-in test runner
 - **Containers:** Docker, Docker Compose, nginx
 - **CI:** GitHub Actions
 
@@ -86,20 +87,31 @@ App runs at `http://localhost:5173` (Vite proxies `/api` calls to the backend au
 3. Back in the mentor tab, you'll see the request with the student's contact info and reason. Mark the session complete once it happens.
 4. Back in the student tab, leave a 1-5 rating. It now shows up in that mentor's average rating.
 
+## Running the tests
+```bash
+cd server
+npm install
+npm test
+```
+
+The backend uses Node's built-in test runner, so there are no extra dependencies. The tests need no database and no `.env` file. They cover:
+- **Unit tests** for the login and role checks (`requireAuth`, `requireRole`): missing, malformed, and forged tokens, and wrong roles
+- **API tests** for requests that are rejected before reaching the database: unauthenticated or wrong-role booking and rating requests, missing booking fields, and out-of-range rating scores
+
 ## Continuous integration
 Every push and pull request to `main` runs a GitHub Actions workflow (`.github/workflows/ci.yml`) with three parallel jobs:
 - **frontend:** installs dependencies and builds the React app
-- **backend:** installs dependencies, syntax-checks every server file, then starts the server and calls `/api/health` as a smoke test
+- **backend:** installs dependencies, syntax-checks every server file, runs the test suite, then starts the server and calls `/api/health` as a smoke test
 - **docker:** builds both images, starts the full stack with Docker Compose, then checks through nginx that the API responds and the database was seeded
 
 ## Known limitations
-- No automated tests yet, so CI covers build, syntax, and startup only
+- Automated tests cover the auth middleware and request validation only. Routes that query the database (signup, login, booking, ratings) are not tested yet
 - No real-time notifications
 - No calendar sync (Google Calendar)
 - Ratings are not tied to specific topics
 
 ## Possible extensions
-- Backend tests for auth and booking logic
+- Integration tests against a test Postgres database (signup, duplicate email, double-booking returns 409)
 - Automated deployment to a cloud platform
 - Email/SMS reminders before a session
 - Google Calendar sync for mentor availability
