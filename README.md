@@ -16,9 +16,37 @@ A full-stack mentor/tutoring scheduler. Students search for mentors by name or s
 - **Backend:** Node.js, Express
 - **Database:** PostgreSQL
 - **Auth:** JWT + bcrypt password hashing
+- **Containers:** Docker, Docker Compose, nginx
 - **CI:** GitHub Actions
 
-## Setup (VS Code)
+## Run with Docker (recommended)
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+```bash
+docker compose up --build
+```
+
+Then open `http://localhost:8080`. This starts three containers:
+- **db:** PostgreSQL 16. On first start it creates all tables from `server/db/schema.sql`
+- **server:** the Express API
+- **client:** the built React app served by nginx, which also forwards `/api` requests to the server
+
+Check that the API is up at `http://localhost:8080/api/health`.
+
+Useful commands:
+```bash
+docker compose down        # stop the containers (database data is kept)
+docker compose down -v     # stop and delete the database volume for a fresh start
+```
+
+The compose file ships with local-development defaults for the database password and JWT secret. To use your own, create a `.env` file in the repo root (it is git-ignored):
+```
+POSTGRES_PASSWORD=your_password
+JWT_SECRET=a_long_random_string
+```
+Postgres sets its password only when the volume is first created, so run `docker compose down -v` after changing it.
+
+## Setup without Docker (VS Code)
 
 ### 1. Database
 Open DBeaver, connect to your local Postgres instance, and:
@@ -65,12 +93,14 @@ Every push and pull request to `main` runs a GitHub Actions workflow (`.github/w
 
 ## Known limitations
 - No automated tests yet, so CI covers build, syntax, and startup only
+- CI does not build the Docker images yet
 - No real-time notifications
 - No calendar sync (Google Calendar)
 - Ratings are not tied to specific topics
 
 ## Possible extensions
 - Backend tests for auth and booking logic
+- Docker build step in CI, and automated deployment to a cloud platform
 - Email/SMS reminders before a session
 - Google Calendar sync for mentor availability
 - Per-topic rating breakdowns
