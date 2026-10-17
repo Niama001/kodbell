@@ -87,20 +87,20 @@ App runs at `http://localhost:5173` (Vite proxies `/api` calls to the backend au
 4. Back in the student tab, leave a 1-5 rating. It now shows up in that mentor's average rating.
 
 ## Continuous integration
-Every push and pull request to `main` runs a GitHub Actions workflow (`.github/workflows/ci.yml`) with two parallel jobs:
+Every push and pull request to `main` runs a GitHub Actions workflow (`.github/workflows/ci.yml`) with three parallel jobs:
 - **frontend:** installs dependencies and builds the React app
 - **backend:** installs dependencies, syntax-checks every server file, then starts the server and calls `/api/health` as a smoke test
+- **docker:** builds both images, starts the full stack with Docker Compose, then checks through nginx that the API responds and the database was seeded
 
 ## Known limitations
 - No automated tests yet, so CI covers build, syntax, and startup only
-- CI does not build the Docker images yet
 - No real-time notifications
 - No calendar sync (Google Calendar)
 - Ratings are not tied to specific topics
 
 ## Possible extensions
 - Backend tests for auth and booking logic
-- Docker build step in CI, and automated deployment to a cloud platform
+- Automated deployment to a cloud platform
 - Email/SMS reminders before a session
 - Google Calendar sync for mentor availability
 - Per-topic rating breakdowns

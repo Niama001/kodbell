@@ -59,3 +59,37 @@ jobs:
           PORT=4010 node server.js &
           sleep 3
           curl --fail http://localhost:4010/api/health
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start the full stack
+        run: docker compose up -d
+
+      - name: Smoke test - wait for the app, then check API and database
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8080/api/health > /dev/null &&
+               curl --fail --silent http://localhost:8080/api/mentors/topics | grep -q "Data Structures"; then
+              echo "App is up and the database is seeded"
+              exit 0
+            fi
+            echo "Waiting for the app... ($i/30)"
+            sleep 2
+          done
+          echo "App did not become healthy in time"
+          exit 1
+
+      - name: Show container logs if something failed
+        if: failure()
+        run: docker compose logs
+
+      - name: Shut down
+        if: always()
+        run: docker compose down -v
