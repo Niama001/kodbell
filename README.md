@@ -4,6 +4,10 @@
 
 A full-stack mentor/tutoring scheduler. Students search for mentors by name or subject, browse their availability calendar, and submit a session request with their contact info and what they need help with. Mentors manage their own topics, availability, incoming requests, and session ratings.
 
+**Live demo:** https://kodbell-client.onrender.com
+
+The demo runs on free hosting tiers, so the first load after a quiet period can take up to a minute while the server wakes up. Please use fake data (for example, `mentor@example.com`), because the demo database is public and may be reset.
+
 ## Features
 - **Authentication and roles:** JWT login with bcrypt password hashing, and role-based access control that separates student and mentor accounts
 - **Mentor search:** students search and filter mentors by name or subject
@@ -18,7 +22,8 @@ A full-stack mentor/tutoring scheduler. Students search for mentors by name or s
 - **Auth:** JWT + bcrypt password hashing
 - **Testing:** Node.js built-in test runner
 - **Containers:** Docker, Docker Compose, nginx
-- **CI:** GitHub Actions
+- **CI/CD:** GitHub Actions
+- **Hosting:** Render (Docker web service, static site, managed PostgreSQL)
 
 ## Run with Docker (recommended)
 Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
@@ -98,21 +103,34 @@ The backend uses Node's built-in test runner, so there are no extra dependencies
 - **Unit tests** for the login and role checks (`requireAuth`, `requireRole`): missing, malformed, and forged tokens, and wrong roles
 - **API tests** for requests that are rejected before reaching the database: unauthenticated or wrong-role booking and rating requests, missing booking fields, and out-of-range rating scores
 
-## Continuous integration
-Every push and pull request to `main` runs a GitHub Actions workflow (`.github/workflows/ci.yml`) with three parallel jobs:
+## Continuous integration and deployment
+Every push and pull request to `main` runs a GitHub Actions workflow (`.github/workflows/ci.yml`):
 - **frontend:** installs dependencies and builds the React app
 - **backend:** installs dependencies, syntax-checks every server file, runs the test suite, then starts the server and calls `/api/health` as a smoke test
 - **docker:** builds both images, starts the full stack with Docker Compose, then checks through nginx that the API responds and the database was seeded
+- **deploy:** runs only on `main`, and only after the three jobs above pass. It triggers a deployment of both services on Render, then waits until the live site responds
+
+## Deployment
+KodBell is hosted on [Render](https://render.com) as three pieces:
+- **Database:** a managed PostgreSQL instance. The schema in `server/db/schema.sql` was loaded into it once
+- **Server:** a Docker web service built from `server/Dockerfile`. Its database connection settings and `JWT_SECRET` are environment variables in Render, never in the repo
+- **Client:** a static site built from `client/`. Two rewrite rules connect it to the server: `/api/*` is forwarded to the server, and every other path serves `index.html` so React Router pages work on refresh
+
+Render's own auto-deploy is turned off. Deployments are triggered only by the `deploy` job in the CI workflow, through deploy hooks stored as GitHub Actions secrets (`RENDER_SERVER_DEPLOY_HOOK` and `RENDER_CLIENT_DEPLOY_HOOK`). A failed check anywhere in the pipeline means nothing is deployed.
 
 ## Known limitations
 - Automated tests cover the auth middleware and request validation only. Routes that query the database (signup, login, booking, ratings) are not tested yet
+- The demo runs on free hosting: the server sleeps when idle, and the free database is temporary, so the demo data can disappear
+- The database schema is loaded by hand, with no automated migrations
+- The `deploy` job confirms that the live site responds, but it does not verify which version is serving
 - No real-time notifications
 - No calendar sync (Google Calendar)
 - Ratings are not tied to specific topics
 
 ## Possible extensions
 - Integration tests against a test Postgres database (signup, duplicate email, double-booking returns 409)
-- Automated deployment to a cloud platform
+- Automated database migrations as part of deployment
+- Describe the Render setup as code (`render.yaml`)
 - Email/SMS reminders before a session
 - Google Calendar sync for mentor availability
 - Per-topic rating breakdowns
