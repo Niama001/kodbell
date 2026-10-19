@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   frontend:
@@ -96,3 +97,33 @@ jobs:
       - name: Shut down
         if: always()
         run: docker compose down -v
+
+  deploy:
+    needs: [frontend, backend, docker]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy for the server
+        env:
+          RENDER_SERVER_DEPLOY_HOOK: ${{ secrets.RENDER_SERVER_DEPLOY_HOOK }}
+        run: curl --fail --silent --show-error -X POST "$RENDER_SERVER_DEPLOY_HOOK"
+
+      - name: Trigger Render deploy for the client
+        env:
+          RENDER_CLIENT_DEPLOY_HOOK: ${{ secrets.RENDER_CLIENT_DEPLOY_HOOK }}
+        run: curl --fail --silent --show-error -X POST "$RENDER_CLIENT_DEPLOY_HOOK"
+
+      - name: Wait for the live app to respond
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent https://kodbell-server.onrender.com/api/health > /dev/null &&
+               curl --fail --silent https://kodbell-server.onrender.com/api/mentors/topics | grep -q "Data Structures" &&
+               curl --fail --silent https://kodbell-client.onrender.com/ > /dev/null; then
+              echo "Live app is up"
+              exit 0
+            fi
+            echo "Waiting for the live app... ($i/30)"
+            sleep 10
+          done
+          echo "Live app did not respond in time"
+          exit 1
