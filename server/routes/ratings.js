@@ -10,6 +10,11 @@ router.post('/', requireAuth, requireRole('student'), async (req, res) => {
   if (!bookingId || !score) {
     return res.status(400).json({ error: 'bookingId and score are required' });
   }
+
+  if (!Number.isInteger(score)) {
+  return res.status(400).json({ error: 'score must be a whole number' });
+  }
+
   if (score < 1 || score > 5) {
     return res.status(400).json({ error: 'score must be between 1 and 5' });
   }
