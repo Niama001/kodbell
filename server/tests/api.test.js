@@ -82,3 +82,13 @@ test('POST /api/ratings with a score of 0 returns 400', async () => {
   const res = await post('/api/ratings', { token: tokenFor('student'), body: { bookingId: 1, score: 0 } });
   assert.equal(res.status, 400);
 });
+
+test('POST /api/ratings with a non-numeric score returns 400', async () => {
+  const res = await post('/api/ratings', { token: tokenFor('student'), body: { bookingId: 1, score: 'abc' } });
+  assert.equal(res.status, 400);
+});
+
+test('POST /api/ratings with a decimal score returns 400', async () => {
+  const res = await post('/api/ratings', { token: tokenFor('student'), body: { bookingId: 1, score: 2.5 } });
+  assert.equal(res.status, 400);
+});
